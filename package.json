@@ -22,7 +22,8 @@
   "eslintConfig": {
     "extends": "eslint-config-developit",
     "rules": {
-      "prefer-rest-params": 0
+      "prefer-rest-params": 0,
+      "react/prefer-es6-class": 0
     }
   },
   "bundlesize": [
@@ -112,5 +113,8 @@
     "react": {
       "optional": true
     }
+  },
+  "dependencies": {
+    "create-react-class": "^15.6.3"
   }
 }

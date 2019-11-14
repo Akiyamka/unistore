@@ -1,4 +1,5 @@
 import { createElement, Children, Component } from 'react';
+import createReactClass from 'create-react-class';
 import { assign, mapActions, select } from '../util';
 
 const CONTEXT_TYPES = {
@@ -23,36 +24,39 @@ export function connect(mapStateToProps, actions) {
 		mapStateToProps = select(mapStateToProps || []);
 	}
 	return Child => {
-		function Wrapper(props, context) {
-			Component.call(this, props, context);
-			const store = context.store;
-			let state = mapStateToProps(store ? store.getState() : {}, props);
-			const boundActions = actions ? mapActions(actions, store) : { store };
-			let update = () => {
-				let mapped = mapStateToProps(store ? store.getState() : {}, props);
-				for (let i in mapped) if (mapped[i]!==state[i]) {
-					state = mapped;
+		const Wrapper = createReactClass({
+			getInitialState() {
+				this.store = this.context.store;
+				this.state = mapStateToProps(this.store ? this.store.getState() : {}, this.props);
+				this.boundActions = actions ? mapActions(actions, this.store) : { store: this.store };
+			},
+			update() {
+				let mapped = mapStateToProps(this.store ? this.store.getState() : {}, this.props);
+				for (let i in mapped) if (mapped[i] !== this.state[i]) {
+					this.state = mapped;
 					return this.forceUpdate();
 				}
-				for (let i in state) if (!(i in mapped)) {
-					state = mapped;
+				for (let i in this.state) if (!(i in mapped)) {
+					this.state = mapped;
 					return this.forceUpdate();
 				}
-			};
-			this.componentWillReceiveProps = p => {
-				props = p;
-				update();
-			};
-			this.componentDidMount = () => {
-				store.subscribe(update);
-			};
-			this.componentWillUnmount = () => {
-				store.unsubscribe(update);
-			};
-			this.render = () => createElement(Child, assign(assign(assign({}, boundActions), this.props), state));
-		}
+			},
+			componentDidMount() {
+				this.store.subscribe(this.update);
+			},
+			componentWillReceiveProps(p) {
+				this.props = p;
+				this.update();
+			},
+			componentWillUnmount() {
+				this.store.unsubscribe(this.update);
+			},
+			render() {
+				return createElement(Child, assign(assign(assign({}, this.boundActions), this.props), this.state));
+			}
+		});
 		Wrapper.contextTypes = CONTEXT_TYPES;
-		return (Wrapper.prototype = Object.create(Component.prototype)).constructor = Wrapper;
+		return Wrapper;
 	};
 }
 
